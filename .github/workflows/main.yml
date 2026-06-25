@@ -28,22 +28,29 @@ jobs:
           cd simple_live_app
           flutter pub get
 
-      # 新增：创建假的签名配置文件（绕过配置阶段的空指针错误）
-      - name: Create dummy keystore config
+      # 自动生成签名
+      - name: Generate Signing Key
         run: |
-          cd simple_live_app/android
-          echo "storeFile=debug.keystore" > key.properties
-          echo "storePassword=android" >> key.properties
-          echo "keyPassword=android" >> key.properties
-          echo "keyAlias=androiddebugkey" >> key.properties
+          cd simple_live_app/android/app
+          keytool -genkey -v -keystore release.keystore \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias release \
+            -storepass 123456 \
+            -keypass 123456 \
+            -dname "CN=Simple Live, OU=Dev, O=Simple Live, L=Beijing, ST=Beijing, C=CN"
+          cd ..
+          echo "storeFile=release.keystore" > key.properties
+          echo "storePassword=123456" >> key.properties
+          echo "keyPassword=123456" >> key.properties
+          echo "keyAlias=release" >> key.properties
 
-      - name: Build Debug APK
+      - name: Build Release APK
         run: |
           cd simple_live_app
-          flutter build apk --debug
+          flutter build apk --release --split-per-abi
 
-      - name: Upload APK
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: simple-live-android-debug
-          path: simple_live_app/build/app/outputs/flutter-apk/app-debug.apk
+          name: simple-live-android-release
+          path: simple_live_app/build/app/outputs/flutter-apk/app-*-release.apk
